@@ -1,0 +1,294 @@
+[
+    {
+        "_name": "moonAction",
+        "x": 150,
+        "y": 40,
+        "config": {
+            "size": { "x": 80, "y": 25 },
+            "hoverTxt": "Lunas",
+            "options": [
+                {
+                    "text": "Mirar",
+                    "action": "moonAction"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "medicineAction",
+        "x": 216,
+        "y": 145,
+        "config": {
+            "size": { "x": 30, "y": 15 },
+            "hoverTxt": "Medicinas",
+            "options": [
+                {
+                    "text": "Contar stock",
+                    "action": "medicineAction"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "foodAction",
+        "x": 11,
+        "y": 172,
+        "config": {
+            "size": { "x": 44, "y": 22 },
+            "hoverTxt": "Comida",
+            "options": [
+                {
+                    "text": "Contar stock",
+                    "action": "foodAction"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "ammoAction",
+        "x": 81,
+        "y": 135,
+        "config": {
+            "size": { "x": 20, "y": 14 },
+            "hoverTxt": "Municion",
+            "options": [
+                {
+                    "text": "Contar stock",
+                    "action": "ammoAction"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "radioAction",
+        "x": 282,
+        "y": 140,
+        "config": {
+            "size": { "x": 29, "y": 25 },
+            "hoverTxt": "Radio",
+            "options": [
+                {
+                    "text": "Examinar",
+                    "action": "radioAction"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "campfireAction",
+        "x": 159,
+        "y": 157,
+        "config": {
+            "size": { "x": 36, "y": 33 },
+            "hoverTxt": "Hoguera",
+            "options": [
+                {
+                    "text": "Examinar",
+                    "action": "campfireAction1"
+                },
+                {
+                    "text": "Reavivar fuego",
+                    "action": "campfireAction2"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "doctorAction",
+        "x": 101,
+        "y": 122,
+        "config": {
+            "size": { "x": 20, "y": 36 },
+            "hoverTxt": "Doctor",
+            "options": [
+                {
+                    "text": "Hablar",
+                    "action": "doctorAction1"
+                },
+                {
+                    "text": "Preparar Medicinas",
+                    "action": "doctorAction2"
+                },
+                {
+                    "text": "Reparar la Radio",
+                    "action": "doctorAction3"
+                },
+                {
+                    "text": "Matar",
+                    "action": "doctorAction4"
+                }
+            ],
+            "infections": [
+                {
+                    "text": "Hablar",
+                    "action": "doctorAction5"
+                },
+                {
+                    "text": "Curar",
+                    "action": "doctorAction6"
+                },
+                {
+                    "text": "Matar",
+                    "action": "doctorAction7"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "scientistAction",
+        "x": 234,
+        "y": 104,
+        "config": {
+            "size": { "x": 21, "y": 33 },
+            "hoverTxt": "Ingeniero",
+            "options": [
+                {
+                    "text": "Hablar",
+                    "action": "scientistAction1"
+                },
+                {
+                    "text": "Reparar la radio",
+                    "action": "scientistAction2"
+                },
+                {
+                    "text": "Matar",
+                    "action": "scientistAction3"
+                }
+            ],
+            "infections": [
+                {
+                    "text": "Hablar",
+                    "action": "scientistAction4"
+                },
+                {
+                    "text": "Curar",
+                    "action": "scientistAction5"
+                },
+                {
+                    "text": "Matar",
+                    "action": "scientistAction6"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "soldierAction",
+        "x": 48,
+        "y": 110,
+        "config": {
+            "size": { "x": 13, "y": 54 },
+            "hoverTxt": "Soldado",
+            "options": [
+                {
+                    "text": "Hablar",
+                    "action": "soldierAction1"
+                },
+                {
+                    "text": "Cazar: Coste 1-3 balas, 90% Exito",
+                    "action": "soldierAction2"
+                },
+                {
+                    "text": "Matar",
+                    "action": "soldierAction3"
+                }
+            ],
+            "infections": [
+                {
+                    "text": "Hablar",
+                    "action": "soldierAction4"
+                },
+                {
+                    "text": "Curar",
+                    "action": "soldierAction5"
+                },
+                {
+                    "text": "Matar",
+                    "action": "soldierAction6"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "girlAction",
+        "x": 130,
+        "y": 115,
+        "config": {
+            "size": { "x": 16, "y": 31 },
+            "hoverTxt": "Psiquiatra",
+            "options": [
+                {
+                    "text": "Hablar",
+                    "action": "girlAction1"
+                },
+                {
+                    "text": "Terapia (todas las acciones)",
+                    "action": "girlAction2"
+                },
+                {
+                    "text": "Matar",
+                    "action": "girlAction3"
+                }
+            ],
+            "infections": [
+                {
+                    "text": "Hablar",
+                    "action": "girlAction4"
+                },
+                {
+                    "text": "Curar",
+                    "action": "girlAction5"
+                },
+                {
+                    "text": "Matar",
+                    "action": "girlAction6"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "dogAction",
+        "x": 17,
+        "y": 143,
+        "config": {
+            "size": { "x": 16, "y": 28 },
+            "hoverTxt": "Marvin",
+            "options": [
+                {
+                    "text": "Acariciar",
+                    "action": "dogAction1"
+                },
+                {
+                    "text": "Cazar: Coste 0 balas, 60% Exito",
+                    "action": "dogAction2"
+                },
+                {
+                    "text": "Matar",
+                    "action": "dogAction3"
+                }
+            ]
+        }
+    },
+    {
+        "_name": "robotAction",
+        "x": 261,
+        "y": 121,
+        "config": {
+            "size": { "x": 14, "y": 47 },
+            "hoverTxt": "BR4ND-0N",
+            "options": [
+                {
+                    "text": "Informe",
+                    "action": "robotAction1"
+                },
+                {
+                    "text": "Reparar la radio",
+                    "action": "robotAction2"
+                },
+                {
+                    "text": "Destruir",
+                    "action": "robotAction3"
+                }
+            ]
+        }
+    }
+]

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Phaser clone of GWBW</title>
+    <style>
+        #screen {
+            height: 430px;
+        }
+        canvas {
+            image-rendering: optimizeSpeed;             /* STOP SMOOTHING, GIVE ME SPEED  */
+            image-rendering: -moz-crisp-edges;          /* Firefox                        */
+            image-rendering: -o-crisp-edges;            /* Opera                          */
+            image-rendering: -webkit-optimize-contrast; /* Chrome (and eventually Safari) */
+            image-rendering: pixelated; /* Chrome */
+            image-rendering: optimize-contrast;         /* CSS3 Proposed                  */
+            -ms-interpolation-mode: nearest-neighbor;   /* IE8+                           */
+            
+            //transform: scale(2);
+        }
+    </style>
+    <script src="lib/phaser.js"></script>
+</head>
+<body>
+    <div id="screen"></div>
+
+    <script src="js/boot.js"></script>
+    <script src="js/preload.js"></script>
+    <script src="js/entities_methods.js"></script>
+    <script src="js/action_methods.js"></script>
+    <script src="js/options.js"></script>
+    <script src="js/introduction.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
