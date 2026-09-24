@@ -197,6 +197,12 @@ GWBW.Game = new Phaser.Class({
         
         this.input.keyboard.on("keydown-D", this.toggleDebug, this);
         
+        // a press shorter than a frame (a quick tap) would be missed by polling
+        // pointer.isDown: every pointerdown latches until the next update
+        this.tapLatch = false;
+        this.pressed = false;
+        this.input.on("pointerdown", function() { this.tapLatch = true; }, this);
+        
         // debug info (replaces Phaser 2's game.debug)
         this.debugTxt = this.add.bitmapText(6, 12, "minecraft", "", 8);
         this.debugTxt.setDepth(700);
@@ -218,6 +224,8 @@ GWBW.Game = new Phaser.Class({
     },
     update: function() {
         var pointer = this.input.activePointer;
+        this.pressed = pointer.isDown || this.tapLatch;
+        this.tapLatch = false;
         this.crosshair.x = Math.floor(pointer.x - 8);
         this.crosshair.y = Math.floor(pointer.y - 8);
         this.hoverTxt.x = this.crosshair.x + 8;
@@ -235,7 +243,7 @@ GWBW.Game = new Phaser.Class({
         for (q=0, l=this.options.length; q<l; q++) {
             if (!this.isOver && this.day < 40 && this.numActions > 0 && this.dialogbox.y <= -this.dialogbox.height/2 && this.options.length && GWBW.overlap(this.options[q].img, this.crosshair)) {
                 this.options[q].txt.setTint(0xffff00);
-                if (this.options.length && pointer.isDown && this.optionsEntity && this.optionsEntity.tweenFinished) {
+                if (this.options.length && this.pressed && this.optionsEntity && this.optionsEntity.tweenFinished) {
                     this.options[q].txt.action.call(this);
                 }
                 break;
@@ -243,7 +251,7 @@ GWBW.Game = new Phaser.Class({
         }
         
         // destroy options, if user clicks on an empty zone of screen
-        if (this.options.length && pointer.isDown && this.optionsEntity && this.optionsEntity.tweenFinished) {
+        if (this.options.length && this.pressed && this.optionsEntity && this.optionsEntity.tweenFinished) {
             this.optionsEntity.destroy();
             
             this.time.delayedCall(500, function() {
@@ -256,7 +264,7 @@ GWBW.Game = new Phaser.Class({
             var btn = this.buttons[prop];
             this.hoverTxt.setText("");
             if (!this.isOver && this.day < 40 && this.numActions > 0 && this.dialogbox.y <= -this.dialogbox.height/2 && !this.options.length && GWBW.overlap(btn, this.crosshair)) {
-                if (!this.options.length && pointer.isDown && !this.optionsEntity) {
+                if (!this.options.length && this.pressed && !this.optionsEntity) {
                     this.optionsEntity = new GWBW.Option(this, btn);
                     this.optionsEntity.createOptionsFor(btn);
                 }
@@ -286,7 +294,7 @@ GWBW.Game = new Phaser.Class({
         }
         
         // check click on gameOver
-        if (this.isOver && !this.dialogActive && this.dialogbox.y <= -this.dialogbox.height/2 && pointer.isDown) {
+        if (this.isOver && !this.dialogActive && this.dialogbox.y <= -this.dialogbox.height/2 && this.pressed) {
             this.sound.removeAll();
             this.scene.start("GWBW.Boot");
             return;
