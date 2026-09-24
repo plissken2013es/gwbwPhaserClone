@@ -50,7 +50,7 @@
         "y": 135,
         "config": {
             "size": { "x": 20, "y": 14 },
-            "hoverTxt": "Municion",
+            "hoverTxt": "Munición",
             "options": [
                 {
                     "text": "Contar stock",
@@ -184,7 +184,7 @@
                     "action": "soldierAction1"
                 },
                 {
-                    "text": "Cazar: Coste 1-3 balas, 90% Exito",
+                    "text": "Cazar: Coste 1-3 balas, 90% Éxito",
                     "action": "soldierAction2"
                 },
                 {
@@ -258,7 +258,7 @@
                     "action": "dogAction1"
                 },
                 {
-                    "text": "Cazar: Coste 0 balas, 60% Exito",
+                    "text": "Cazar: Coste 0 balas, 60% Éxito",
                     "action": "dogAction2"
                 },
                 {
