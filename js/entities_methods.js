@@ -4,7 +4,8 @@ GWBW.entities_methods = {
         this.text = "Everything OK?";
         
         this.isAnimated = false;
-        
+        this.isClosing = false;
+
         this.nameTxt = this.gameLink.add.bitmapText(this.x + 2, this.y + 1, "minecraft", this.name, 8);
         this.nameTxt.setTint(0x00ff00);
         this.nameTxt.setLeftAlign();
@@ -37,8 +38,9 @@ GWBW.entities_methods = {
             this.nameTxt.setText(this.name);
             this.mainTxt.setText(this.text);
         }
-        if (this.y >= 0 && this.gameLink.input.activePointer.isDown) {
+        if (this.y >= 0 && !this.isClosing && this.gameLink.input.activePointer.isDown) {
             this.isAnimated = true;
+            this.isClosing = true;
             this.gameLink.tweens.add({
                 targets: this,
                 y: -this.height,
@@ -46,6 +48,8 @@ GWBW.entities_methods = {
                 ease: "Quad.easeOut",
                 onComplete: function() {
                     this.isAnimated = false;
+                    this.isClosing = false;
+                    this.gameLink.onDialogClosed();
                 },
                 callbackScope: this
             });
@@ -59,7 +63,7 @@ GWBW.entities_methods = {
     },
     campfire_update: function() {
         var game = this.gameLink;
-        this.play("fire" + game.fireAmount);
+        this.play("fire" + Math.max(0, game.fireAmount));
         if (!game.fireAmount) game.campfireSnd.stop();
     },
     radio_update: function() {

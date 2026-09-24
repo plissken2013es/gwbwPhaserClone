@@ -47,6 +47,10 @@ GWBW.Game = new Phaser.Class({
         
         this.numActions = 5;
         this.isOver = false;
+        this.isEscaping = false;
+        this.dialogActive = false;
+        this.dialogShown = null;
+        this.dialogQueue = [];
         this.options = [];
         
         this.medicines = 1;
@@ -278,11 +282,11 @@ GWBW.Game = new Phaser.Class({
         
         // update actions text
         if (this.numActions >= 0) {
-            this.actionsTxt.setText(this.isOver ? "": "Acciones: " + this.numActions);
+            this.actionsTxt.setText(this.isOver || this.isEscaping ? "": "Acciones: " + this.numActions);
         }
         
         // check click on gameOver
-        if (this.isOver && this.dialogbox.y <= -this.dialogbox.height/2 && pointer.isDown) {
+        if (this.isOver && !this.dialogActive && this.dialogbox.y <= -this.dialogbox.height/2 && pointer.isDown) {
             this.sound.removeAll();
             this.scene.start("GWBW.Boot");
             return;
@@ -403,6 +407,11 @@ GWBW.Game = new Phaser.Class({
         var madmenText = "";
         for (var q=0; q<4; q++) {
             if (this.sanity[q] < 0 && this.sanity[q] > -99) {
+                // an infected member was already out of the survivors and rations count
+                if (this.infected[q]) {
+                    this.numSurvivors++;
+                    this.rationsNeeded++;
+                }
                 this.memberFlees(q);
                 if (q == this.SOLDIER_ID)   madmen.push("el soldado");
                 if (q == this.DOCTOR_ID)    madmen.push("el doctor");
@@ -527,6 +536,7 @@ GWBW.Game = new Phaser.Class({
                 this.dialogbox.text = "¡Lo logramos! ¡Por fin saldremos de este maldito planeta! \n ¡Mirad! ¡El convoy orbital!";
                 this.dialogbox.name = 'Sgt Burden';
                 this.tweenDialog({ y: 0 }, 1);
+                this.isEscaping = true;
                 this.launchShip();
             } else {
                 this.dialogbox.text = '¡Hemos sobrevivido! Pero la radio no funciona... \n Estamos atrapados aquí para siempre...';
@@ -649,6 +659,23 @@ GWBW.Game = new Phaser.Class({
             onComplete: function() {
                 var title = this.add.image(GWBW.WIDTH / 2, GWBW.HEIGHT / 2 - 20, "titulo");
                 title.setDepth(520);
+                
+                // after a while, fade to black and show the summary of the escape
+                this.time.delayedCall(4000, function() {
+                    this.tweens.add({
+                        targets: this.fadeAlpha,
+                        value: 1,
+                        duration: 2000,
+                        ease: "Quad.easeInOut",
+                        onComplete: function() {
+                            title.destroy();
+                            this.end = 3;
+                            this.isOver = true;
+                            this.checkGameOver("");
+                        },
+                        callbackScope: this
+                    });
+                }, [], this);
             },
             callbackScope: this
         });
@@ -750,7 +777,28 @@ GWBW.Game = new Phaser.Class({
         this.fadeAlpha.value = this.debugMode ? 0.5 : 0;
 
     },
+    onDialogClosed: function() {
+        this.dialogActive = false;
+        // show the next message that arrived while the dialog was busy
+        var next = this.dialogQueue.shift();
+        if (next) {
+            this.dialogbox.name = next.name;
+            this.dialogbox.text = next.text;
+            this.tweenDialog.apply(this, next.args);
+        }
+    },
     tweenDialog: function(pos, time, callback) {
+        // the caller has already written its message into the dialogbox; if another
+        // message is being shown (e.g. several events in the same night), queue it
+        if (this.dialogActive) {
+            this.dialogQueue.push({ name: this.dialogbox.name, text: this.dialogbox.text, args: Array.prototype.slice.call(arguments) });
+            this.dialogbox.name = this.dialogShown.name;
+            this.dialogbox.text = this.dialogShown.text;
+            return;
+        }
+        this.dialogActive = true;
+        this.dialogShown = { name: this.dialogbox.name, text: this.dialogbox.text };
+        
         time = time * 1000;
         
         var member = null, duration = null;

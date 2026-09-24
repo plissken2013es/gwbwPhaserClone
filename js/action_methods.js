@@ -41,9 +41,9 @@ GWBW.action_methods = {
     },
     ammoAction: function() {
         var resultTxt = "No queda munición.";
-        if (this.foodAmount > 1) {
+        if (this.ammo > 1) {
              resultTxt = 'Nos quedan ' + this.ammo + ' balas láser.';
-        } else if (this.foodAmount == 1) {
+        } else if (this.ammo == 1) {
             resultTxt = 'Queda una última bala.';
         }
         this.dialogbox.text = resultTxt;
