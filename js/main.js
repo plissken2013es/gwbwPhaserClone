@@ -1,8 +1,19 @@
-var game = new Phaser.Game(320, 215, Phaser.CANVAS, "screen", GWBW.Boot, false, false);
-
-game.state.add("GWBW.Boot", GWBW.Boot);
-game.state.add("GWBW.Preload", GWBW.Preload);
-game.state.add("GWBW.Introduction", GWBW.Introduction);
-game.state.add("GWBW.Game", GWBW.Game);
-
-game.state.start("GWBW.Boot");
+var game = new Phaser.Game({
+    type: Phaser.AUTO,
+    width: GWBW.WIDTH,
+    height: GWBW.HEIGHT,
+    parent: "screen",
+    pixelArt: true,
+    backgroundColor: "#000000",
+    fps: { target: 60 },
+    input: { activePointers: 1 },
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    physics: {
+        default: "arcade",
+        arcade: { gravity: { x: 0, y: 0 } }
+    },
+    scene: [GWBW.Boot, GWBW.Preload, GWBW.Introduction, GWBW.Game]
+});

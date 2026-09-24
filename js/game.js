@@ -1,7 +1,22 @@
-GWBW.Game = function() {};
-GWBW.Game.prototype = {
-    init: function(wind) {
-        this.wind = wind;
+// Sprite whose play() behaves like Phaser 2: calling it again with the
+// animation that is already playing does not restart it
+GWBW.Entity = new Phaser.Class({
+    Extends: Phaser.GameObjects.Sprite,
+    initialize: function Entity(scene, x, y, key) {
+        Phaser.GameObjects.Sprite.call(this, scene, x, y, key);
+    },
+    play: function(key, ignoreIfPlaying) {
+        return Phaser.GameObjects.Sprite.prototype.play.call(this, key, ignoreIfPlaying === undefined ? true : ignoreIfPlaying);
+    }
+});
+
+GWBW.Game = new Phaser.Class({
+    Extends: Phaser.Scene,
+    initialize: function Game() {
+        Phaser.Scene.call(this, { key: "GWBW.Game" });
+    },
+    init: function(data) {
+        this.wind = data.wind;
         this.fadeAlpha = { value: 1 };
         
         this.entities = [];
@@ -125,40 +140,46 @@ GWBW.Game.prototype = {
             "robot"
         ];
         
-        this.game.canvas.style.cursor = "none";
-        this.game.canvas.antialias = false;
+        this.input.setDefaultCursor("none");
         
         this.debugMode = false;
     },
     create: function() {
         // shuffle dialogues
         for (var q=0; q<4; q++) {
-            this.dialogues[q] = Phaser.ArrayUtils.shuffle(this.dialogues[q]);
+            this.dialogues[q] = Phaser.Utils.Array.Shuffle(this.dialogues[q]);
         }
         
         // create fade object
-        this.fade = this.game.add.graphics(0, 0);
-        this.fade.z = 500;
-        this.fade.beginFill(0x000000, this.fadeAlpha.value);
-        this.fade.drawRect(0, 0, this.world.width, this.world.height);
-        this.fade.endFill();
+        this.fade = this.add.graphics({ x: 0, y: 0 });
+        this.fade.setDepth(500);
+        this.fade.fillStyle(0x000000, this.fadeAlpha.value);
+        this.fade.fillRect(0, 0, GWBW.WIDTH, GWBW.HEIGHT);
         
         this.createBitmapTxts();
         
         // add background
-        this.add.image(0, 0, "fondo");
+        this.add.image(0, 0, "fondo").setOrigin(0);
         
         // add music and crossfade with wind
-        this.wind.fadeOut(4000);
-        this.music = this.add.audio("bso", 0, true);
-        this.music.onDecoded.add(this.startMusic, this);
+        this.tweens.add({
+            targets: this.wind,
+            volume: 0,
+            duration: 4000,
+            onComplete: function() {
+                this.wind.stop();
+            },
+            callbackScope: this
+        });
+        this.music = this.sound.add("bso", { volume: 0, loop: true });
+        this.startMusic();
         
         // add sound effects
-        this.stepsSnd = this.add.audio("stepsSnd", 0.1, true);
-        this.campfireSnd = this.add.audio("campfireSnd", 0.4, true);
-        this.laserSnd = this.add.audio("laserSnd", 0.4);
-        this.howlSnd = this.add.audio("howlSnd", 0.5);
-        this.roarSnd = this.add.audio("roarSnd", 0.5);
+        this.stepsSnd = this.sound.add("stepsSnd", { volume: 0.1, loop: true });
+        this.campfireSnd = this.sound.add("campfireSnd", { volume: 0.4, loop: true });
+        this.laserSnd = this.sound.add("laserSnd", { volume: 0.4 });
+        this.howlSnd = this.sound.add("howlSnd", { volume: 0.5 });
+        this.roarSnd = this.sound.add("roarSnd", { volume: 0.5 });
         
         // add entities
         this.addEntities();
@@ -167,20 +188,34 @@ GWBW.Game.prototype = {
         this.createActions();
         
         // predators
-        this.predatorDay1 = 9 + this.math.between(0, 3);  // a predator will attack between day#9 and day#12
-        this.predatorDay2 = 28 + this.math.between(0, 3); // a predator will attack between day#28 and day#31
+        this.predatorDay1 = 9 + Phaser.Math.Between(0, 3);  // a predator will attack between day#9 and day#12
+        this.predatorDay2 = 28 + Phaser.Math.Between(0, 3); // a predator will attack between day#28 and day#31
         
-        this.input.keyboard.addKey(Phaser.Keyboard.D).onDown.add(this.toggleDebug, this);
+        this.input.keyboard.on("keydown-D", this.toggleDebug, this);
+        
+        // debug info (replaces Phaser 2's game.debug)
+        this.debugTxt = this.add.bitmapText(6, 12, "minecraft", "", 8);
+        this.debugTxt.setDepth(700);
+        this.debugCoordsTxt = this.add.bitmapText(0, 0, "minecraft", "", 8);
+        this.debugCoordsTxt.setTint(0x00ff00);
+        this.debugCoordsTxt.setDepth(701);
         
         // launch fadeout animation
-        this.add.tween(this.fadeAlpha).to({value: 0}, 2000, Phaser.Easing.Quadratic.InOut, true)
-            .onComplete.add(function() {
-                this.countdownTxt.text = "";
-            }, this);
+        this.tweens.add({
+            targets: this.fadeAlpha,
+            value: 0,
+            duration: 2000,
+            ease: "Quad.easeInOut",
+            onComplete: function() {
+                this.countdownTxt.setText("");
+            },
+            callbackScope: this
+        });
     },
     update: function() {
-        this.crosshair.x = Math.floor(this.input.mousePointer.x - 8);
-        this.crosshair.y = Math.floor(this.input.mousePointer.y - 8);
+        var pointer = this.input.activePointer;
+        this.crosshair.x = Math.floor(pointer.x - 8);
+        this.crosshair.y = Math.floor(pointer.y - 8);
         this.hoverTxt.x = this.crosshair.x + 8;
         this.hoverTxt.y = this.crosshair.y - 12;
         
@@ -191,12 +226,12 @@ GWBW.Game.prototype = {
         
         // manage options displayed on screen, if they exist
         for (q=0, l=this.options.length; q<l; q++) {
-            this.options[q].txt.tint = 0x00ff00;
+            this.options[q].txt.setTint(0x00ff00);
         }
         for (q=0, l=this.options.length; q<l; q++) {
-            if (!this.isOver && this.day < 40 && this.numActions > 0 && this.dialogbox.y <= -this.dialogbox.height/2 && this.options.length && this.options[q].img.overlap(this.crosshair)) {
-                this.options[q].txt.tint = 0xffff00;
-                if (this.options.length && this.input.mousePointer.isDown && this.optionsEntity && this.optionsEntity.tweenFinished) {
+            if (!this.isOver && this.day < 40 && this.numActions > 0 && this.dialogbox.y <= -this.dialogbox.height/2 && this.options.length && GWBW.overlap(this.options[q].img, this.crosshair)) {
+                this.options[q].txt.setTint(0xffff00);
+                if (this.options.length && pointer.isDown && this.optionsEntity && this.optionsEntity.tweenFinished) {
                     this.options[q].txt.action.call(this);
                 }
                 break;
@@ -204,26 +239,24 @@ GWBW.Game.prototype = {
         }
         
         // destroy options, if user clicks on an empty zone of screen
-        if (this.options.length && this.input.mousePointer.isDown && this.optionsEntity && this.optionsEntity.tweenFinished) {
+        if (this.options.length && pointer.isDown && this.optionsEntity && this.optionsEntity.tweenFinished) {
             this.optionsEntity.destroy();
             
-            var timerTmp = this.time.create(false);
-            timerTmp.add(500, function() {
+            this.time.delayedCall(500, function() {
                 this.optionsEntity = null;
-            }, this);
-            timerTmp.start();
+            }, [], this);
         }
         
         // manage actions
         for (var prop in this.buttons) {
             var btn = this.buttons[prop];
-            this.hoverTxt.text = "";
-            if (!this.isOver && this.day < 40 && this.numActions > 0 && this.dialogbox.y <= -this.dialogbox.height/2 && !this.options.length && btn.overlap(this.crosshair)) {
-                if (!this.options.length && this.input.mousePointer.isDown && !this.optionsEntity) {
+            this.hoverTxt.setText("");
+            if (!this.isOver && this.day < 40 && this.numActions > 0 && this.dialogbox.y <= -this.dialogbox.height/2 && !this.options.length && GWBW.overlap(btn, this.crosshair)) {
+                if (!this.options.length && pointer.isDown && !this.optionsEntity) {
                     this.optionsEntity = new GWBW.Option(this, btn);
                     this.optionsEntity.createOptionsFor(btn);
                 }
-                this.hoverTxt.text = btn.hoverTxt;
+                this.hoverTxt.setText(btn.hoverTxt);
                 break;
             }
         }
@@ -231,64 +264,83 @@ GWBW.Game.prototype = {
         // check if actions had been spent
         if (this.numActions == 0 && this.dialogbox.y <= -this.dialogbox.height/2) {
             this.numActions = -1;
-            this.add.tween(this.fadeAlpha).to({value: 1}, 2000, Phaser.Easing.Quadratic.InOut, true)
-                .onComplete.add(function() {
+            this.tweens.add({
+                targets: this.fadeAlpha,
+                value: 1,
+                duration: 2000,
+                ease: "Quad.easeInOut",
+                onComplete: function() {
                     this.onDayPasses();
-                }, this);
+                },
+                callbackScope: this
+            });
         } 
         
         // update actions text
         if (this.numActions >= 0) {
-            this.actionsTxt.text = this.isOver ? "": "Acciones: " + this.numActions;
+            this.actionsTxt.setText(this.isOver ? "": "Acciones: " + this.numActions);
         }
         
         // check click on gameOver
-        if (this.isOver && this.dialogbox.y <= -this.dialogbox.height/2 && this.input.mousePointer.isDown) {
-            this.state.start("GWBW.Boot", true, true);
+        if (this.isOver && this.dialogbox.y <= -this.dialogbox.height/2 && pointer.isDown) {
+            this.sound.removeAll();
+            this.scene.start("GWBW.Boot");
+            return;
         }
         
-        this.world.sort("z", Phaser.Group.SORT_ASCENDING);
+        this.render();
     },
+    // Phaser 4 scenes have no render() hook: called at the end of update()
     render: function() {
         if (this.debugMode) {
-            this.game.debug.text("Día " + this.day + ", fiera1 día" + this.predatorDay1 +  ", fiera2 día" + this.predatorDay2, 6, 20, null, "minecraft");
-            this.game.debug.text("Cordura soldado " + this.sanity[this.SOLDIER_ID] +  ", doctor " + this.sanity[this.DOCTOR_ID], 6, 40, null, "minecraft");
-            this.game.debug.text("Científico " + this.sanity[this.SCIENTIST_ID] +  ", psicóloga " + this.sanity[this.GIRL_ID], 6, 60, null, "minecraft");
-            this.game.debug.text("Infectados soldado " + this.infected[this.SOLDIER_ID] +  ", doctor " + this.infected[this.DOCTOR_ID], 6, 80, null, "minecraft");
-            this.game.debug.text("Científico " + this.infected[this.SCIENTIST_ID] + ", psicóloga " + this.infected[this.GIRL_ID], 6, 100, null, "minecraft");
-            this.game.debug.text("Nivel infección soldado " + this.infectionLevel[this.SOLDIER_ID] + ", doctor " + this.infectionLevel[this.DOCTOR_ID], 6, 120, null, "minecraft");
-            this.game.debug.text("Científico " + this.infectionLevel[this.SCIENTIST_ID] + ", psicóloga " + this.infectionLevel[this.GIRL_ID], 6, 140, null, "minecraft");
-            this.game.debug.text("Raciones necesarias " + this.rationsNeeded + ", supervivientes " + this.numSurvivors, 6, 160, null, "minecraft");
-            this.game.debug.text("Medicinas " + this.medicines + ", balas " + this.ammo + ", comida " + this.foodAmount, 6, 180, null, "minecraft");
-            this.game.debug.text("Reparación radio " + this.radioStatus + " / " + this.radioMax, 6, 200, null, "minecraft");
-            
-            this.game.debug.text("("+(this.crosshair.x+8)+","+(this.crosshair.y+8)+")", this.crosshair.x, this.crosshair.y, "#00ff00", "minecraft");
+            this.debugTxt.setText([
+                "Día " + this.day + ", fiera1 día" + this.predatorDay1 +  ", fiera2 día" + this.predatorDay2,
+                "Cordura soldado " + this.sanity[this.SOLDIER_ID] +  ", doctor " + this.sanity[this.DOCTOR_ID],
+                "Científico " + this.sanity[this.SCIENTIST_ID] +  ", psicóloga " + this.sanity[this.GIRL_ID],
+                "Infectados soldado " + this.infected[this.SOLDIER_ID] +  ", doctor " + this.infected[this.DOCTOR_ID],
+                "Científico " + this.infected[this.SCIENTIST_ID] + ", psicóloga " + this.infected[this.GIRL_ID],
+                "Nivel infección soldado " + this.infectionLevel[this.SOLDIER_ID] + ", doctor " + this.infectionLevel[this.DOCTOR_ID],
+                "Científico " + this.infectionLevel[this.SCIENTIST_ID] + ", psicóloga " + this.infectionLevel[this.GIRL_ID],
+                "Raciones necesarias " + this.rationsNeeded + ", supervivientes " + this.numSurvivors,
+                "Medicinas " + this.medicines + ", balas " + this.ammo + ", comida " + this.foodAmount,
+                "Reparación radio " + this.radioStatus + " / " + this.radioMax
+            ]);
+            this.debugCoordsTxt.setText("("+(this.crosshair.x+8)+","+(this.crosshair.y+8)+")");
+            this.debugCoordsTxt.setPosition(this.crosshair.x, this.crosshair.y - 8);
         }
+        this.debugTxt.visible = this.debugMode;
+        this.debugCoordsTxt.visible = this.debugMode;
         
+        this.fade.clear();
         if (this.fadeAlpha.value) {
-            this.fade.clear();
-            this.fade.beginFill(0x000000, this.fadeAlpha.value);
-            this.fade.drawRect(0, 0, this.world.width, this.world.height);
-            this.fade.endFill();
+            this.fade.fillStyle(0x000000, this.fadeAlpha.value);
+            this.fade.fillRect(0, 0, GWBW.WIDTH, GWBW.HEIGHT);
         }
     },
     // end of mandatory functions
     addEntities: function() {
-        var entities = this.cache.getJSON("entities").entities;
+        var entities = this.cache.json.get("entities").entities;
         for (var q=0, l=entities.length; q<l; q++) {
             var e = entities[q];
-            this[e.name] = this.add.sprite(e.x, e.y, e.name);
-            this[e.name].z = e.z;
+            this[e.name] = this.add.existing(new GWBW.Entity(this, e.x, e.y, e.name));
+            this[e.name].setOrigin(0);
+            this[e.name].setDepth(e.z);
             for (var j=0, k=e.anims.length; j<k; j++) {
-                this[e.name].animations.add(e.anims[j].name, e.anims[j].frames, e.anims[j].rate, e.anims[j].loop);
+                // animations are local to each sprite, as in Phaser 2
+                this[e.name].anims.create({
+                    key:        e.anims[j].name,
+                    frames:     this.anims.generateFrameNumbers(e.name, { frames: e.anims[j].frames }),
+                    frameRate:  e.anims[j].rate || 1,
+                    repeat:     e.anims[j].loop ? -1 : 0
+                });
             }
             this[e.name].play(e.start);
-            this[e.name].gameLink = this.game.state.getCurrentState();
+            this[e.name].gameLink = this;
             if (e.init)     this[e.name].custom_init   = GWBW.entities_methods[e.init].bind(this[e.name]);
             if (e.update)   this[e.name].custom_update = GWBW.entities_methods[e.update].bind(this[e.name]);
             if (e.onclick)  {
                 this[e.name].custom_onclick            = GWBW.entities_methods[e.onclick].bind(this[e.name]);
-                this.input.onDown.add(this[e.name].custom_onclick, this[e.name]);
+                this.input.on("pointerdown", this[e.name].custom_onclick);
             }
             
             this.entities.push(this[e.name]);
@@ -298,7 +350,7 @@ GWBW.Game.prototype = {
     checkBodies: function() {
         for (var q=0; q<this.CREW_ENTITIES; q++) {
             var member = this[CREW_ENTITIES[q]];
-            if (member.currentAnim == member.anims.die) member.kill();
+            if (member.anims.getName() === "die") member.setVisible(false).setActive(false);
         }
     },
     checkCampfire: function() {
@@ -325,18 +377,25 @@ GWBW.Game.prototype = {
             }
             this.summary += ' \n  \n Gracias por jugar.';
             
-            this.endTitleTxt.text = this.endTitle;
-            this.summaryTxt.text = this.summary;
+            this.endTitleTxt.setText(this.endTitle);
+            this.summaryTxt.setText(this.summary);
         } else {
             var cdTxt = "Quedan " + (40 - this.day) + " días.";
             if (40 - this.day == 1) cdTxt = "Queda 1 día.";
             this.countdown = cdTxt + casualtiesText;
-            this.countdownTxt.text = this.countdown;
+            this.countdownTxt.setText(this.countdown);
             
-            this.add.tween(this.fadeAlpha).to({value: 0}, 2000, Phaser.Easing.Quadratic.InOut, true, 2000)
-                .onComplete.add(function() {
-                    this.countdownTxt.text = "";
-                }, this);
+            this.tweens.add({
+                targets: this.fadeAlpha,
+                value: 0,
+                duration: 2000,
+                delay: 2000,
+                ease: "Quad.easeInOut",
+                onComplete: function() {
+                    this.countdownTxt.setText("");
+                },
+                callbackScope: this
+            });
         }
     },
     checkMadmen: function() {
@@ -381,7 +440,7 @@ GWBW.Game.prototype = {
     },
     checkInfections: function() {
         if (Math.random() < .19) {
-            var virus = this.math.between(0, 3);
+            var virus = Phaser.Math.Between(0, 3);
             if (!this.infected[virus] && this.sanity[virus] > -99) {
                 this.infected[virus] = true;
                 this[this.CREW_ENTITIES[virus]+"Action"].infected = true;
@@ -432,9 +491,9 @@ GWBW.Game.prototype = {
         }
         if (this.day == this.predatorDay1 || this.day == this.predatorDay2) {
             this.roarSnd.play();
-            var shooting = this.math.between(4, 7);
+            var shooting = Phaser.Math.Between(4, 7);
             if (shooting <= this.ammo) {
-                var foodLost = this.math.between(3, 7);
+                var foodLost = Phaser.Math.Between(3, 7);
                 this.dialogbox.text =   "Las has expulsado del campamento. Has necesitado " + shooting + " balas, pero \n ";
                 this.dialogbox.text +=  "te han robado " + foodLost + " raciones de comida. La moral del grupo ha bajado.";
                 this.dialogbox.name = "¡Bestias salvajes atacan durante la noche!";
@@ -479,12 +538,13 @@ GWBW.Game.prototype = {
         }
     },
     createActions: function() {
-        var actionData = this.cache.getJSON("actions");
+        // work on a copy: formatActionObject() replaces the action names with
+        // functions and the JSON cache survives game restarts in Phaser 4
+        var actionData = JSON.parse(JSON.stringify(this.cache.json.get("actions")));
         for (var q=0; q<actionData.length; q++) {
             var action = this.formatActionObject(actionData[q]);
-            this[action._name] = this.add.image(action.x, action.y);
-            this[action._name].width = action.config.size.x;
-            this[action._name].height = action.config.size.y;
+            this[action._name] = this.add.zone(action.x, action.y, action.config.size.x, action.config.size.y);
+            this[action._name].setOrigin(0);
             this[action._name].hoverTxt = action.config.hoverTxt;
             this[action._name].options = [];
             for (var j=0; j<action.config.options.length; j++) {
@@ -496,25 +556,24 @@ GWBW.Game.prototype = {
                     this[action._name].infections.push(action.config.infections[j]);
                 }
             }
-            this[action._name].gameLink = this.game.state.getCurrentState();
-            this[action._name].z = 250 + q;
+            this[action._name].gameLink = this;
+            this[action._name].setDepth(250 + q);
             
             this.buttons[action._name] = this[action._name];
         }
     },
     createBmpTxt: function(cfg) {
         this[cfg.obj] = this.add.bitmapText(cfg.x, cfg.y, cfg.font, cfg.text, cfg.size);
-        this[cfg.obj].anchor.x = cfg.anchor || 0.5;
-        this[cfg.obj].smoothed = false;
-        this[cfg.obj].tint = cfg.tint || 0xffffff;
-        this[cfg.obj].align = cfg.align || "center";
-        if (cfg.z) this[cfg.obj].z = cfg.z;
+        this[cfg.obj].setOrigin(cfg.anchor || 0.5, 0);
+        this[cfg.obj].setTint(cfg.tint || 0xffffff);
+        this[cfg.obj].align = { left: 0, center: 1, right: 2 }[cfg.align || "center"];
+        if (cfg.z) this[cfg.obj].setDepth(cfg.z);
     },
     createBitmapTxts: function() {
         // create endTitle bitmapText
         this.createBmpTxt({
             obj:    "endTitleTxt",
-            x:      this.world.centerX,
+            x:      GWBW.WIDTH / 2,
             y:      50,
             font:   "fipps",
             text:   "",
@@ -525,7 +584,7 @@ GWBW.Game.prototype = {
         // create summary bitmapText
         this.createBmpTxt({
             obj:    "summaryTxt",
-            x:      this.world.centerX,
+            x:      GWBW.WIDTH / 2,
             y:      70,
             font:   "minecraft",
             text:   "",
@@ -536,8 +595,8 @@ GWBW.Game.prototype = {
         // create countdown bitmapText
         this.createBmpTxt({
             obj:    "countdownTxt",
-            x:      this.world.centerX,
-            y:      this.world.centerY/2,
+            x:      GWBW.WIDTH / 2,
+            y:      GWBW.HEIGHT / 4,
             font:   "minecraft",
             text:   this.countdown,
             size:   8,
@@ -548,8 +607,8 @@ GWBW.Game.prototype = {
         // create actions bitmapText
         this.createBmpTxt({
             obj:    "actionsTxt",
-            x:      this.world.width - 40,
-            y:      this.world.height - 15,
+            x:      GWBW.WIDTH - 40,
+            y:      GWBW.HEIGHT - 15,
             font:   "minecraft",
             text:   "Acciones: " + this.numActions,
             size:   8,
@@ -559,8 +618,8 @@ GWBW.Game.prototype = {
         // create hover bitmapText
         this.createBmpTxt({
             obj:    "hoverTxt",
-            x:      this.world.centerX,
-            y:      this.world.centerY/2,
+            x:      GWBW.WIDTH / 2,
+            y:      GWBW.HEIGHT / 4,
             font:   "minecraft",
             text:   "",
             size:   8,
@@ -582,14 +641,20 @@ GWBW.Game.prototype = {
     },
     launchShip: function() {
         this.ship.y = 0;
-        this.add.tween(this.ship).to({y: 57}, 22000, Phaser.Easing.Quadratic.Out, true)
-            .onComplete.add(function() {
-                var title = this.add.image(this.world.centerX, this.world.centerY - 20, "titulo");
-                title.anchor.set(0.5);
-            }, this);
+        this.tweens.add({
+            targets: this.ship,
+            y: 57,
+            duration: 22000,
+            ease: "Quad.easeOut",
+            onComplete: function() {
+                var title = this.add.image(GWBW.WIDTH / 2, GWBW.HEIGHT / 2 - 20, "titulo");
+                title.setDepth(520);
+            },
+            callbackScope: this
+        });
     },
     memberFlees: function(id) {
-        this[this.CREW_ENTITIES[id]].kill();
+        this[this.CREW_ENTITIES[id]].setVisible(false).setActive(false);
         var name = this.CREW_ENTITIES[id] + "Action";
         var action = this[name];
         delete this.buttons[name];
@@ -622,7 +687,7 @@ GWBW.Game.prototype = {
     reduceCrewSanity: function() {
         for (var q=0; q<4; q++) {
             if (!this.infected[q]) {
-                this.sanity[q] -= this.math.between(1, 3);
+                this.sanity[q] -= Phaser.Math.Between(1, 3);
             }
         }
     },
@@ -671,36 +736,39 @@ GWBW.Game.prototype = {
     },    
     startMusic: function() {
         this.music.play();
-        this.music.fadeTo(6000, 0.25);
+        this.tweens.add({ targets: this.music, volume: 0.25, duration: 6000 });
     },
     startTalking: function(spr, tween, member, duration) {
         member.isTalking = true;
         
-        var timerTmp = this.time.create();
-        timerTmp.add(duration, function() {
+        this.time.delayedCall(duration, function() {
             member.isTalking = false;
-        }, this);
-        timerTmp.start();
+        }, [], this);
     },
     toggleDebug: function() {
         this.debugMode = this.debugMode ? false : true;
         this.fadeAlpha.value = this.debugMode ? 0.5 : 0;
-        if (!this.fadeAlpha.value) this.fade.clear();
+
     },
     tweenDialog: function(pos, time, callback) {
         time = time * 1000;
-        var anim = this.add.tween(this.dialogbox);
-        anim.to({y: pos.y}, time, Phaser.Easing.Quadratic.Out);
         
         var member = null, duration = null;
         if (arguments.length > 3) {
             member = arguments[3];
             duration = arguments[4];
         }
-        if (callback) {
-            anim.onComplete.add(callback, this, 0, member, duration);
-        }
         this.dialogbox.isAnimated = true;
-        anim.start();
+        this.tweens.add({
+            targets: this.dialogbox,
+            y: pos.y,
+            duration: time,
+            ease: "Quad.easeOut",
+            onComplete: function(tween) {
+                // same arguments Phaser 2's onComplete passed: (sprite, tween, ...extra args)
+                if (callback) callback.call(this, this.dialogbox, tween, member, duration);
+            },
+            callbackScope: this
+        });
     }    
-};
+});

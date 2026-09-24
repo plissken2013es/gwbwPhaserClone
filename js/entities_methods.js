@@ -6,64 +6,70 @@ GWBW.entities_methods = {
         this.isAnimated = false;
         
         this.nameTxt = this.gameLink.add.bitmapText(this.x + 2, this.y + 1, "minecraft", this.name, 8);
-        this.nameTxt.smoothed = false;
-        this.nameTxt.tint = 0x00ff00;
-        this.nameTxt.align = "left";
-        this.nameTxt.z = 663;
+        this.nameTxt.setTint(0x00ff00);
+        this.nameTxt.setLeftAlign();
+        this.nameTxt.setDepth(663);
 
-        this.blinkTxt = this.gameLink.add.bitmapText(this.gameLink.world.width - 16, this.y + this.height - 14, "minecraft", ">>>", 8);
-        this.blinkTxt.smoothed = false;
-        this.blinkTxt.tint = 0xffffff;
-        this.blinkTxt.align = "right";
-        this.blinkTxt.z = 664;
+        this.blinkTxt = this.gameLink.add.bitmapText(GWBW.WIDTH - 16, this.y + this.height - 14, "minecraft", ">>>", 8);
+        this.blinkTxt.setTint(0xffffff);
+        this.blinkTxt.setRightAlign();
+        this.blinkTxt.setDepth(664);
         
         this.mainTxt = this.gameLink.add.bitmapText(this.x + 4, this.y + 12, "minecraft", this.text, 8);
-        this.mainTxt.smoothed = false;
-        this.mainTxt.tint = 0xffffff;
-        this.mainTxt.align = "left";
-        this.mainTxt.z = 665;
+        this.mainTxt.setTint(0xffffff);
+        this.mainTxt.setLeftAlign();
+        this.mainTxt.setDepth(665);
         
-        this.blinkTimer = this.gameLink.time.create();
-        this.blinkTimer.loop(800, function() {
-            this.blinkTxt.visible = this.blinkTxt.visible ? false : true;
-        }, this);
-        this.blinkTimer.start();
+        this.blinkTimer = this.gameLink.time.addEvent({
+            delay: 800,
+            loop: true,
+            callback: function() {
+                this.blinkTxt.visible = this.blinkTxt.visible ? false : true;
+            },
+            callbackScope: this
+        });
     },
     dialogbox_update: function() {
         if (this.isAnimated) {
             this.nameTxt.y = Math.floor(this.y) + 6;
             this.blinkTxt.y = Math.floor(this.y) + this.height - 20;
             this.mainTxt.y = Math.floor(this.y) + 17;
-            this.nameTxt.text = this.name;
-            this.mainTxt.text = this.text;
+            this.nameTxt.setText(this.name);
+            this.mainTxt.setText(this.text);
         }
-        if (this.y >= 0 && this.gameLink.input.mousePointer.isDown) {
+        if (this.y >= 0 && this.gameLink.input.activePointer.isDown) {
             this.isAnimated = true;
-            this.gameLink.add.tween(this).to({ y: -this.height }, 800, Phaser.Easing.Quadratic.Out, true)
-                .onComplete.add(function() {
+            this.gameLink.tweens.add({
+                targets: this,
+                y: -this.height,
+                duration: 800,
+                ease: "Quad.easeOut",
+                onComplete: function() {
                     this.isAnimated = false;
-                }, this);
+                },
+                callbackScope: this
+            });
         }
     },    
     planet1_update: function() {
-        this.x = 170 + this.game.state.getCurrentState().day;
+        this.x = 170 + this.gameLink.day;
     },
     planet2_update: function() {
-        this.x = 150 + this.game.state.getCurrentState().day * 2;
+        this.x = 150 + this.gameLink.day * 2;
     },
     campfire_update: function() {
-        var game = this.game.state.getCurrentState();
+        var game = this.gameLink;
         this.play("fire" + game.fireAmount);
         if (!game.fireAmount) game.campfireSnd.stop();
     },
     radio_update: function() {
-        var game = this.game.state.getCurrentState();
+        var game = this.gameLink;
         if (game.radioStatus >= game.radioMax)        this.play("radio3");
         if (game.radioStatus < game.radioMax)         this.play("radio2");
         if (game.radioStatus <= game.radioMax / 3)    this.play("radio1");
     },
     meat_update: function() {
-        var game = this.game.state.getCurrentState();
+        var game = this.gameLink;
         if (game.foodAmount > 30)    this.play("meat4");
         if (game.foodAmount <= 30)   this.play("meat3");
         if (game.foodAmount <= 16)   this.play("meat2");
@@ -76,15 +82,15 @@ GWBW.entities_methods = {
         this.isTalking = false;
         this.flip = false;
         
-        this.anchor.x = 0.5;
-        this.y = this.gameLink.world.height - this.height - 15;
-        this.gameLink.physics.arcade.enable(this);
+        this.setOrigin(0.5, 0);
+        this.y = GWBW.HEIGHT - this.height - 15;
+        this.gameLink.physics.add.existing(this);
     },
     burden_update: function() {
         if (this.gameLink.isOver) return;
         
         if (!this.isTalking) {
-            if (this.animations.currentAnim != this.animations._anims.shoot) {
+            if (this.anims.getName() !== "shoot") {
                 if (this.body.velocity.x > 0 && this.x > this.target - 20) {
                     this.body.velocity.x = 0;
                 }
@@ -100,14 +106,13 @@ GWBW.entities_methods = {
                 }
             } else {
                 this.body.velocity.x = 0;
-                if (this.animations.currentAnim.isFinished) this.play("idle");
+                if (!this.anims.isPlaying) this.play("idle");
             }
         } else {
             this.body.velocity.x = 0;
             this.play("talk");
         }
-        var flipX = this.flip ? -1 : 1;
-        this.scale.set(flipX, 1);
+        this.setFlipX(this.flip);
 
         if (this.body.velocity.x && !this.isWalking) {
             this.gameLink.stepsSnd.play();
@@ -118,8 +123,8 @@ GWBW.entities_methods = {
         }
     },
     burden_onclick: function() {
-        if (this.gameLink.dialogbox.position.y > -45) return;
-        this.target = this.gameLink.input.x;
+        if (this.gameLink.dialogbox.y > -45) return;
+        this.target = this.gameLink.input.activePointer.x;
         if (this.x > this.target) {
             this.body.velocity.x = -this.speed;
             this.flip = false;
@@ -130,7 +135,7 @@ GWBW.entities_methods = {
         this.play("walk");
     },
     doctor_update: function() {
-        if (this.animations.currentAnim != this.animations._anims.die) {
+        if (this.anims.getName() !== "die") {
             if (this.gameLink.infected[this.gameLink.DOCTOR_ID]) {
                 this.play("infected");
             } else {
@@ -146,7 +151,7 @@ GWBW.entities_methods = {
         }
     },
     soldier_update: function() {
-        if (this.animations.currentAnim != this.animations._anims.die) {
+        if (this.anims.getName() !== "die") {
             if (this.gameLink.infected[this.gameLink.SOLDIER_ID]) {
                  this.play("infected");
             } else {
@@ -158,7 +163,7 @@ GWBW.entities_methods = {
         }
     },
     scientist_update: function() {
-        if (this.animations.currentAnim != this.animations._anims.die) {
+        if (this.anims.getName() !== "die") {
             if (this.gameLink.infected[this.gameLink.SCIENTIST_ID]) {
                  this.play("infected");
             } else {
@@ -170,7 +175,7 @@ GWBW.entities_methods = {
         }
     },
     girl_update: function() {
-        if (this.animations.currentAnim != this.animations._anims.die) {
+        if (this.anims.getName() !== "die") {
             if (this.gameLink.infected[this.gameLink.GIRL_ID]) {
                  this.play("infected");
             } else {
