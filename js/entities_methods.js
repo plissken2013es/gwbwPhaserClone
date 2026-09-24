@@ -38,7 +38,7 @@ GWBW.entities_methods = {
             this.nameTxt.setText(this.name);
             this.mainTxt.setText(this.text);
         }
-        if (this.y >= 0 && !this.isClosing && this.gameLink.input.activePointer.isDown) {
+        if (this.y >= 0 && !this.isClosing && this.gameLink.pressed) {
             this.isAnimated = true;
             this.isClosing = true;
             this.gameLink.tweens.add({
