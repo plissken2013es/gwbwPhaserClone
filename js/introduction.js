@@ -1,6 +1,8 @@
-GWBW.Introduction = function() {};
-
-GWBW.Introduction.prototype = {
+GWBW.Introduction = new Phaser.Class({
+    Extends: Phaser.Scene,
+    initialize: function Introduction() {
+        Phaser.Scene.call(this, { key: "GWBW.Introduction" });
+    },
     init: function() {
         this.tpos = 0;
         this.cpos = 0;
@@ -39,40 +41,44 @@ GWBW.Introduction.prototype = {
         ];
     },
     create: function() {
-        this.game.context.scale(2, 2);
+        var centerX = GWBW.WIDTH / 2;
         
-        this.introLine = this.add.bitmapText(this.world.centerX, 20, "minecraft", "", 9);
-        this.introLine.anchor.x = 0.5;
-        this.introLine.smoothed = false;
-        this.introLine.tint = 0x000000;
-        this.introLine.align = "center";
+        this.introLine = this.add.bitmapText(centerX, 20, "minecraft", "", 9);
+        this.introLine.setOrigin(0.5, 0);
+        this.introLine.setTint(0x000000);
+        this.introLine.setCenterAlign();
         
-        this.introTxt = this.add.bitmapText(this.world.centerX, 20, "minecraft", "", 9);
-        this.introTxt.anchor.x = 0.5;
-        this.introTxt.smoothed = false;
-        this.introTxt.tint = 0xffffff;
-        this.introTxt.align = "center";
+        this.introTxt = this.add.bitmapText(centerX, 20, "minecraft", "", 9);
+        this.introTxt.setOrigin(0.5, 0);
+        this.introTxt.setTint(0xffffff);
+        this.introTxt.setCenterAlign();
         
-        this.keyboardSnd = this.add.audio("keyboard", 0.1, false);
-        this.consoleCursor = this.add.sprite(0, 0, "cursor");
-        this.consoleCursor.animations.add("idle", [0, 1, 2, 3, 4, 5], 6, true);
+        this.keyboardSnd = this.sound.add("keyboard", { volume: 0.1, loop: false });
+        this.consoleCursor = this.add.sprite(0, 0, "cursor").setOrigin(0);
+        this.consoleCursor.anims.create({
+            key: "idle",
+            frames: this.anims.generateFrameNumbers("cursor", { frames: [0, 1, 2, 3, 4, 5] }),
+            frameRate: 6,
+            repeat: -1
+        });
         this.consoleCursor.play("idle");
         
-        this.music = this.add.audio("wind", 0, true);
-        this.music.onDecoded.add(this.startMusic, this);
+        // audio is already decoded by the loader in Phaser 4
+        this.music = this.sound.add("wind", { volume: 0, loop: true });
+        this.startMusic();
         
-        this.input.onDown.addOnce(this.showTitle, this);
+        this.input.once("pointerdown", this.showTitle, this);
     },
     update: function() {
         if (this.showingTitle) return;
         
         if (this.cpos < this.txtArray[this.tpos].length) {
             if (this.cpos === 3) this.keyboardSnd.play();
-            this.introTxt.text += this.txtArray[this.tpos][this.cpos++];
-            if (this.txtArray[this.tpos][this.cpos]) this.introLine.text += this.txtArray[this.tpos][this.cpos];
-            var h = this.introTxt.textHeight;
-            var w = this.introLine.textWidth;
-            this.consoleCursor.x = (w + this.world.width)/2 + 2;
+            this.introTxt.setText(this.introTxt.text + this.txtArray[this.tpos][this.cpos++]);
+            if (this.txtArray[this.tpos][this.cpos]) this.introLine.setText(this.introLine.text + this.txtArray[this.tpos][this.cpos]);
+            var h = this.introTxt.height;
+            var w = this.introLine.width;
+            this.consoleCursor.x = (w + GWBW.WIDTH)/2 + 2;
             this.consoleCursor.y = h + 8;
         } else {
             this.keyboardSnd.stop();
@@ -84,54 +90,50 @@ GWBW.Introduction.prototype = {
     },
     // end of mandatory functions -------------------------------
     showTitle: function() {
-        this.introLine.kill();
-        this.introTxt.text = "(Los dioses estarán vigilando)";
+        if (this.showingTitle) return;
+        
+        this.keyboardSnd.stop();
+        this.introLine.setVisible(false);
+        this.introTxt.setText("(Los dioses estarán vigilando)");
         this.introTxt.y = 150;
-        this.introTxt.fontSize = 10;
-        this.introTxt.anchor.x = 0.5;
+        this.introTxt.setFontSize(10);
         
-        var title = this.add.image(this.world.centerX, this.world.centerY - 20, "titulo");
-        title.anchor.set(0.5);
+        this.add.image(GWBW.WIDTH / 2, GWBW.HEIGHT / 2 - 20, "titulo");
         
-        this.startTxt = this.add.bitmapText(this.world.centerX, 190, "fipps", "Click para jugar", 8);
-        this.startTxt.anchor.x = 0.5;
-        this.startTxt.smoothed = false;
-        this.startTxt.tint = 0xffff00;
+        this.startTxt = this.add.bitmapText(GWBW.WIDTH / 2, 190, "fipps", "Click para jugar", 8);
+        this.startTxt.setOrigin(0.5, 0);
+        this.startTxt.setTint(0xffff00);
         this.startTxt.visible = false;
         
         this.showingTitle = true;
-        if (this.consoleCursor) this.consoleCursor.kill();
+        if (this.consoleCursor) this.consoleCursor.setVisible(false);
         this.tpos = 0;
-        var timerTmp = this.time.create(false);
-        timerTmp.add(500, function() {
+        this.time.delayedCall(500, function() {
             this.startTxt.visible = true;
-            this.input.onDown.addOnce(this.startGame, this);
-        }, this);
-        timerTmp.start();
+            this.input.once("pointerdown", this.startGame, this);
+        }, [], this);
     },
     startGame: function() {
-        this.state.start("GWBW.Game", true, false, this.music);
+        this.scene.start("GWBW.Game", { wind: this.music });
     },
     startMusic: function() {
         this.music.play();
-        this.music.fadeTo(4000, 0.25);
+        this.tweens.add({ targets: this.music, volume: 0.25, duration: 4000 });
         
-        this.timerTxt = this.time.create();
-        this.timerTxt.loop(2000, this.updateTxt, this);
-        this.timerTxt.start();
+        this.timerTxt = this.time.addEvent({ delay: 2000, loop: true, callback: this.updateTxt, callbackScope: this });
     },
     updateTxt: function() {
         if (this.showingTitle) {
             this.startTxt.visible = this.startTxt.visible ? false : true;
         } else {
             this.tpos++;
-            this.introLine.text = "";
+            this.introLine.setText("");
             this.cpos = 0;
             if (this.tpos == 13) {
-                this.introTxt.text = "";
+                this.introTxt.setText("");
             }
-            this.introTxt.text += this.txtArray[this.tpos][this.cpos++];
-            this.introLine.text += this.txtArray[this.tpos][this.cpos];
+            this.introTxt.setText(this.introTxt.text + this.txtArray[this.tpos][this.cpos++]);
+            this.introLine.setText(this.introLine.text + this.txtArray[this.tpos][this.cpos]);
         }
     }
-};
+});

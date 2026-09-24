@@ -5,63 +5,50 @@ GWBW.Option = function(state, action) {
 };
 GWBW.Option.prototype = {
     addButtonImage: function(group, params, txt) {
-        var img = this.gameLink.make.image(params.x, params.y);
-        img.width = params.w;
-        img.height = params.h;
+        // invisible hit area, positioned relative to the container
+        var img = this.gameLink.make.zone({ x: params.x, y: params.y, width: params.w, height: params.h }, false);
+        img.setOrigin(0);
         group.add(img);
         this.gameLink.options.push({img: img, txt: txt});
     },
     addTxtBackground: function(group, params) {
         if (!this.graphics) {
-            this.graphics = this.gameLink.make.graphics(0, 0);
-            group.add(this.graphics);   
+            this.graphics = this.gameLink.make.graphics({ x: 0, y: 0 }, false);
+            group.add(this.graphics);
         }
-        this.graphics.beginFill(0x000000, 0.35);
-        this.graphics.drawRect(params.x - 2, params.y - 2, params.w + 2, params.h + 2);
-        this.graphics.endFill();
+        this.graphics.fillStyle(0x000000, 0.35);
+        this.graphics.fillRect(params.x - 2, params.y - 2, params.w + 2, params.h + 2);
     },
     createOptionsFor: function(opt) {
-        this.container = this.gameLink.add.group();
-        
-        var x = Math.floor(this.gameLink.input.mousePointer.x);
-        var y = Math.floor(this.gameLink.input.mousePointer.y);
-        
-        if (opt.infected) {
-            for (var i=0; i < opt.infections.length; i++) {
-                var txt = this.gameLink.add.bitmapText(x - 20, y - 20 + i * 18, "minecraft", opt.infections[i].text, 10);
-                if (txt.x + txt.textWidth > this.gameLink.world.width) txt.x -= Math.floor(txt.textWidth/2);
-                
-                txt.smoothed = false;
-                txt.tint = 0x00ff00;
-                txt.z = 200 + i;
-                txt.action = opt.infections[i].action;
-                
-                this.addTxtBackground(this.container, {x: txt.x, y: txt.y, w: txt.textWidth, h: txt.textHeight});
-                this.container.add(txt);
-                this.addButtonImage(this.container, {x: txt.x, y: txt.y, w: txt.textWidth, h: txt.textHeight}, txt);
-            }
-        } else {
-            for (var i=0; i < opt.options.length; i++) {
-                var txt = this.gameLink.add.bitmapText(x - 20, y - 20 + i * 18, "minecraft", opt.options[i].text, 10);
-                txt.smoothed = false;
-                if (txt.x + txt.textWidth > this.gameLink.world.width) txt.x -= Math.floor(txt.textWidth/2);
-                
-                txt.tint = 0x00ff00;
-                txt.z = 200 + i;
-                txt.action = opt.options[i].action;
-                
-                this.addTxtBackground(this.container, {x: txt.x, y: txt.y, w: txt.textWidth, h: txt.textHeight});
-                this.container.add(txt);
-                this.addButtonImage(this.container, {x: txt.x, y: txt.y, w: txt.textWidth, h: txt.textHeight}, txt);
-            }
+        this.container = this.gameLink.add.container(0, 0);
+        this.container.setDepth(200);
+
+        var x = Math.floor(this.gameLink.input.activePointer.x);
+        var y = Math.floor(this.gameLink.input.activePointer.y);
+
+        var list = opt.infected ? opt.infections : opt.options;
+        for (var i=0; i < list.length; i++) {
+            var txt = this.gameLink.make.bitmapText({ x: x - 20, y: y - 20 + i * 18, font: "minecraft", text: list[i].text, size: 10 }, false);
+            if (txt.x + txt.width > GWBW.WIDTH) txt.x -= Math.floor(txt.width/2);
+
+            txt.setTint(0x00ff00);
+            txt.action = list[i].action;
+
+            this.addTxtBackground(this.container, {x: txt.x, y: txt.y, w: txt.width, h: txt.height});
+            this.container.add(txt);
+            this.addButtonImage(this.container, {x: txt.x, y: txt.y, w: txt.width, h: txt.height}, txt);
         }
-        this.container.cacheAsBitmap = true;
-        
-        this.gameLink.add.tween(this.container).to({y: "-7"}, 600, Phaser.Easing.Quadratic.Out, true)
-            .onComplete.add(function() {
+
+        this.gameLink.tweens.add({
+            targets: this.container,
+            y: "-=7",
+            duration: 600,
+            ease: "Quad.easeOut",
+            onComplete: function() {
                 this.tweenFinished = true;
-                this.container.cacheAsBitmap = null;
-            }, this);;
+            },
+            callbackScope: this
+        });
     },
     destroy: function() {
         this.graphics.destroy();

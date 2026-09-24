@@ -1,24 +1,26 @@
-var GWBW = {};
+var GWBW = {
+    WIDTH: 320,
+    HEIGHT: 215,
 
-GWBW.Boot = function() {};
-GWBW.Boot.prototype = {
-    init: function() {
-        this.input.maxPointers = 1;
-        this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-        this.scale.pageAlignHorizontally = true;
-        this.scale.pageAlignVertically = true;
-        
-        this.time.desiredFps = 60;
-    },
-    preload: function() {
-        this.load.path = "media/";
-        this.load.image("splash", "splash.jpg");
-        
-        this.load.path = "media/fonts/";
-        this.load.bitmapFont("minecraft");
-    },
-    create: function() {
-        this.game.context.scale(2, 2);
-        this.state.start('GWBW.Preload');
+    // Phaser 2's Sprite.overlap(): true if the bounds of both objects intersect
+    overlap: function(a, b) {
+        return Phaser.Geom.Intersects.RectangleToRectangle(a.getBounds(), b.getBounds());
     }
 };
+
+GWBW.Boot = new Phaser.Class({
+    Extends: Phaser.Scene,
+    initialize: function Boot() {
+        Phaser.Scene.call(this, { key: "GWBW.Boot" });
+    },
+    preload: function() {
+        this.load.setPath("media/");
+        this.load.image("splash", "splash.jpg");
+
+        this.load.setPath("media/fonts/");
+        this.load.bitmapFont("minecraft", "minecraft.png", "minecraft.xml");
+    },
+    create: function() {
+        this.scene.start("GWBW.Preload");
+    }
+});
